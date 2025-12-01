@@ -1,5 +1,6 @@
 import Foundation
 import CoreGraphics
+internal import Combine
 
 enum CropMode: String, CaseIterable, Identifiable {
     case single = "通常モード"

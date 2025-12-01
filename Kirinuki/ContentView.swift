@@ -40,7 +40,7 @@ struct ContentView: View {
                         }
                     }
                     .pickerStyle(SegmentedPickerStyle())
-                    .onChange(of: cropConfiguration.mode) { newValue in
+                    .onChange(of: cropConfiguration.mode) {oldValue, newValue in
                         cropConfiguration.updateMode(newValue)
                     }
 

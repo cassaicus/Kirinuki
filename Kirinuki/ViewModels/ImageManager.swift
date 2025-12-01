@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+internal import Combine
 
 class ImageManager: ObservableObject {
     @Published var sourceFolder: URL?
