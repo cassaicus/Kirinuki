@@ -35,7 +35,7 @@ struct ContentView: View {
                         .id(page.id) // Verify if tag is enough or explicit id needed for scrollTo
                     }
                     .navigationSplitViewColumnWidth(min: 180, ideal: 250)
-                    .onChange(of: imageManager.selectedPageId) { newValue in
+                    .onChange(of: imageManager.selectedPageId) {oldValue, newValue in
                          if let id = newValue {
                              withAnimation {
                                  proxy.scrollTo(id, anchor: .center)
