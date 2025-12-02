@@ -1,0 +1,36 @@
+{
+  "fill" : {
+    "automatic-gradient" : "display-p3:0.96783,0.95485,0.52611,1.00000"
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "image-name" : "a1cj87a1cj87a1cj.jpg",
+          "name" : "a1cj87a1cj87a1cj",
+          "position" : {
+            "scale" : 0.58,
+            "translation-in-points" : [
+              -13.195236970303995,
+              54.59344721265006
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}
