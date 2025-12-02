@@ -41,8 +41,9 @@ struct ImageViewer: View {
                                     imageManager.selectedCropId = cropRect.id
                                 },
                                 onDelete: {
-                                    cropState.removeRect(id: cropRect.id)
-                                    if imageManager.selectedCropId == cropRect.id {
+                                    let idToDelete = cropRect.id
+                                    cropState.removeRect(id: idToDelete)
+                                    if imageManager.selectedCropId == idToDelete {
                                         imageManager.selectedCropId = nil
                                     }
                                 }
