@@ -17,7 +17,7 @@ struct ContentView: View {
 
                 ScrollViewReader { proxy in
                     List(imageManager.pages, selection: $imageManager.selectedPageId) { page in
-                        HStack {
+                        VStack {
                             AsyncImage(url: page.url) { image in
                                 image.resizable()
                                      .aspectRatio(contentMode: .fit)
@@ -25,12 +25,13 @@ struct ContentView: View {
                                 ProgressView()
                                     .frame(width: 50, height: 50)
                             }
-                            .frame(width: 80, height: 80)
+                            .frame(width: 100, height: 100)
 
                             Text(page.url.lastPathComponent)
                                 .font(.caption)
                                 .lineLimit(1)
                         }
+                        .frame(maxWidth: .infinity) // Center in list item
                         .tag(page.id)
                         .id(page.id) // Verify if tag is enough or explicit id needed for scrollTo
                     }
