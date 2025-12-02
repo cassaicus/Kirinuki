@@ -4,6 +4,7 @@ import SwiftUI
 struct CropRectView: View {
     @Binding var normalizedRect: CGRect
     let color: Color
+    let onDelete: () -> Void
 
     @State private var dragStartRect: CGRect? = nil
 
@@ -41,9 +42,6 @@ struct CropRectView: View {
                     )
 
                 // Handles
-                // We'll just implement Bottom-Right for resizing for MVP simplicity, or 4 corners if needed.
-                // Let's do 4 corners.
-
                 // Top-Left
                 HandleView()
                     .position(x: viewRect.minX, y: viewRect.minY)
@@ -63,6 +61,16 @@ struct CropRectView: View {
                 HandleView()
                     .position(x: viewRect.maxX, y: viewRect.maxY)
                     .gesture(resizeGesture(corner: .bottomRight, parentSize: parentSize))
+
+                // Delete Button (X) - Top Right Corner of the rect
+                Button(action: onDelete) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(.white)
+                        .background(Circle().fill(Color.black.opacity(0.6)))
+                }
+                .position(x: viewRect.maxX, y: viewRect.minY)
+                .offset(x: 10, y: -10) // Slight offset outside
             }
         }
     }

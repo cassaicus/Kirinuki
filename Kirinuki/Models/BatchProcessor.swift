@@ -4,7 +4,9 @@ import CoreGraphics
 import ImageIO
 
 class BatchProcessor {
-    func processImages(files: [URL], sourceFolder: URL, rects: [CropRect], progressHandler: @escaping (Double) -> Void) -> String {
+    // Old method for backward compatibility if needed, but we can just remove it or ignore it.
+    // New method:
+    func processPages(pages: [ImagePage], sourceFolder: URL, progressHandler: @escaping (Double) -> Void) -> String {
         let outputFolder = sourceFolder.appendingPathComponent("Output")
 
         // Create Output directory
@@ -18,10 +20,14 @@ class BatchProcessor {
         var failCount = 0
         var globalCounter = 1
 
-        // Sort rects: Primary (0/Blue) first, then Secondary (1/Red)
-        let sortedRects = rects.sorted { $0.colorIndex < $1.colorIndex }
+        for (index, page) in pages.enumerated() {
+            let fileURL = page.url
+            let cropState = page.cropState
+            let rects = cropState.cropRects
 
-        for (index, fileURL) in files.enumerated() {
+            // Sort rects: Primary (0/Blue) first, then Secondary (1/Red)
+            let sortedRects = rects.sorted { $0.colorIndex < $1.colorIndex }
+
             autoreleasepool {
                 if let imageSource = CGImageSourceCreateWithURL(fileURL as CFURL, nil),
                    let cgImage = CGImageSourceCreateImageAtIndex(imageSource, 0, nil) {
@@ -30,14 +36,6 @@ class BatchProcessor {
                     let imageHeight = CGFloat(cgImage.height)
 
                     for rectInfo in sortedRects {
-                        // Calculate pixel rect
-                        // rectInfo.rect is normalized (0-1)
-                        // Origin is usually Top-Left in SwiftUI/Mac but CGImage might be different?
-                        // CGImage coordinates: (0,0) is usually bottom-left on Mac, top-left on iOS/SwiftUI context.
-                        // However, CGImage cropping usually expects top-left origin if we treat it as data.
-                        // Actually, let's verify. CGImageCreateWithImageInRect: "The rectangle is specified in the image's coordinate space."
-                        // Typically for image files, origin is top-left.
-
                         let x = rectInfo.rect.origin.x * imageWidth
                         let y = rectInfo.rect.origin.y * imageHeight
                         let w = rectInfo.rect.width * imageWidth
@@ -65,10 +63,17 @@ class BatchProcessor {
                 }
             }
 
-            progressHandler(Double(index + 1) / Double(files.count))
+            progressHandler(Double(index + 1) / Double(pages.count))
         }
 
         return "完了: \(globalCounter - 1)枚の画像を保存しました (失敗: \(failCount))"
+    }
+
+    // Legacy support to match old signature if needed by tests, but we are replacing usage.
+    func processImages(files: [URL], sourceFolder: URL, rects: [CropRect], progressHandler: @escaping (Double) -> Void) -> String {
+        // This logic is now flawed because we want per-page settings.
+        // However, we can keep it for single-setting batch if ever needed, but for now we won't use it.
+        return "Deprecated"
     }
 
     private func saveImage(_ cgImage: CGImage, to url: URL) -> Bool {
