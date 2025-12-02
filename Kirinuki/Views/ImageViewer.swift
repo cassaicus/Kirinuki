@@ -27,7 +27,7 @@ struct ImageViewer: View {
                             imageManager.currentImageSize = image.size
                         }
                         .onChange(of: image) { _, newImage in
-                            imageManager.currentImageSize = newImage?.size ?? .zero
+                            imageManager.currentImageSize = newImage.size
                         }
 
                     // Render Crop Rects relative to the image frame
