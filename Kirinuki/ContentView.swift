@@ -56,6 +56,20 @@ struct ContentView: View {
                             }
                         }
                         .font(.caption)
+
+                        HStack {
+                            Button(action: {
+                                cropConfiguration.alignCropRects(toRight: false)
+                            }) {
+                                Text("左へ揃える")
+                            }
+
+                            Button(action: {
+                                cropConfiguration.alignCropRects(toRight: true)
+                            }) {
+                                Text("右へ揃える")
+                            }
+                        }
                     }
                 }
 
