@@ -2,10 +2,28 @@ import Foundation
 import AppKit
 internal import Combine
 
+struct ImagePage: Identifiable, Equatable {
+    let id = UUID()
+    let url: URL
+    var cropState: PageCropState
+
+    // Equatable conformance
+    static func == (lhs: ImagePage, rhs: ImagePage) -> Bool {
+        return lhs.id == rhs.id && lhs.cropState == rhs.cropState
+    }
+}
+
 class ImageManager: ObservableObject {
     @Published var sourceFolder: URL?
-    @Published var imageFiles: [URL] = []
-    @Published var previewImage: NSImage?
+    @Published var pages: [ImagePage] = []
+    @Published var selectedPageId: UUID?
+
+    // Cached preview for the *selected* image to avoid loading everything at once?
+    // Or we can let the View load async. For the thumbnails, we might want a lightweight solution.
+    // For now, we will rely on AsyncImage in the view.
+
+    @Published var previewImage: NSImage? // Kept for backward compatibility or main viewer optimization if needed
+
     @Published var isProcessing: Bool = false
     @Published var processingProgress: Double = 0.0
     @Published var statusMessage: String = "フォルダを選択してください"
@@ -31,19 +49,49 @@ class ImageManager: ObservableObject {
 
             // Filter for image files (JPG, PNG for now)
             let imageExtensions = ["jpg", "jpeg", "png", "webp"]
-            self.imageFiles = fileURLs.filter { url in
+            let sortedURLs = fileURLs.filter { url in
                 imageExtensions.contains(url.pathExtension.lowercased())
             }.sorted { $0.lastPathComponent < $1.lastPathComponent }
 
-            if let firstImage = imageFiles.first {
-                self.previewImage = NSImage(contentsOf: firstImage)
-                self.statusMessage = "\(imageFiles.count)枚の画像を読み込みました"
+            // Create default crop state
+            let defaultState = PageCropState()
+
+            self.pages = sortedURLs.map { url in
+                ImagePage(url: url, cropState: defaultState)
+            }
+
+            if let firstPage = pages.first {
+                self.selectedPageId = firstPage.id
+                self.statusMessage = "\(pages.count)枚の画像を読み込みました"
             } else {
-                self.previewImage = nil
+                self.selectedPageId = nil
                 self.statusMessage = "画像ファイルが見つかりませんでした"
             }
         } catch {
             self.statusMessage = "エラー: \(error.localizedDescription)"
+        }
+    }
+
+    func applySettingsToAll(from sourcePageId: UUID) {
+        guard let sourceIndex = pages.firstIndex(where: { $0.id == sourcePageId }) else { return }
+        let sourceState = pages[sourceIndex].cropState
+
+        for i in 0..<pages.count {
+            pages[i].cropState = sourceState
+        }
+    }
+
+    func selectNext() {
+        guard let current = selectedPageId, let index = pages.firstIndex(where: { $0.id == current }) else { return }
+        if index < pages.count - 1 {
+            selectedPageId = pages[index + 1].id
+        }
+    }
+
+    func selectPrevious() {
+        guard let current = selectedPageId, let index = pages.firstIndex(where: { $0.id == current }) else { return }
+        if index > 0 {
+            selectedPageId = pages[index - 1].id
         }
     }
 }

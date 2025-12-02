@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ImageViewer: View {
     let image: NSImage?
-    @ObservedObject var cropConfiguration: CropConfiguration
+    @Binding var cropState: PageCropState
 
     var body: some View {
         GeometryReader { geometry in
@@ -21,7 +21,7 @@ struct ImageViewer: View {
 
                     // Render Crop Rects relative to the image frame
                     ZStack {
-                        ForEach($cropConfiguration.cropRects) { $cropRect in
+                        ForEach($cropState.cropRects) { $cropRect in
                             CropRectView(
                                 normalizedRect: $cropRect.rect,
                                 color: cropRect.colorIndex == 0 ? .blue : .red
