@@ -56,6 +56,12 @@ struct ContentView: View {
                             }
                         }
                         .font(.caption)
+
+                        Button(action: {
+                            cropConfiguration.alignCropRects()
+                        }) {
+                            Text("両方の大きさを揃える")
+                        }
                     }
                 }
 

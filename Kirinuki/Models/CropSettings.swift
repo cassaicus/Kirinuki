@@ -46,4 +46,23 @@ class CropConfiguration: ObservableObject {
             }
         }
     }
+
+    func alignCropRects() {
+        guard mode == .split, cropRects.count >= 2 else { return }
+
+        let rect1 = cropRects[0].rect
+
+        // 1枠目の右隣に配置し、サイズとY座標を合わせる
+        let newRect2 = CGRect(
+            x: rect1.maxX,
+            y: rect1.minY,
+            width: rect1.width,
+            height: rect1.height
+        )
+
+        // Update the second rect
+        var secondCropRect = cropRects[1]
+        secondCropRect.rect = newRect2
+        cropRects[1] = secondCropRect
+    }
 }
