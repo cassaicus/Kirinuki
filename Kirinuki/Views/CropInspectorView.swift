@@ -9,10 +9,10 @@ struct CropInspectorView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             Group {
-                Text("設定")
+                Text("Settings")
                     .font(.headline)
 
-                Picker("モード", selection: $cropState.mode) {
+                Picker("Mode", selection: $cropState.mode) {
                     ForEach(CropMode.allCases) { mode in
                         Text(mode.rawValue).tag(mode)
                     }
@@ -26,10 +26,10 @@ struct CropInspectorView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Circle().fill(Color.blue).frame(width: 10, height: 10)
-                            Text("1枚目 (若い番号)")
+                            Text("1st Frame (Earlier)")
                             Spacer()
                             if !cropState.cropRects.contains(where: { $0.colorIndex == 0 }) {
-                                Button("追加") {
+                                Button("Add") {
                                     cropState.addRect(colorIndex: 0)
                                 }
                                 .font(.caption)
@@ -37,10 +37,10 @@ struct CropInspectorView: View {
                         }
                         HStack {
                             Circle().fill(Color.red).frame(width: 10, height: 10)
-                            Text("2枚目 (次の番号)")
+                            Text("2nd Frame (Later)")
                             Spacer()
                             if !cropState.cropRects.contains(where: { $0.colorIndex == 1 }) {
-                                Button("追加") {
+                                Button("Add") {
                                     cropState.addRect(colorIndex: 1)
                                 }
                                 .font(.caption)
@@ -53,23 +53,133 @@ struct CropInspectorView: View {
                         Button(action: {
                             cropState.alignCropRects(toRight: false)
                         }) {
-                            Text("左へ揃える")
+                            Text("Align Left")
                         }
                         .disabled(cropState.cropRects.count < 2)
 
                         Button(action: {
                             cropState.alignCropRects(toRight: true)
                         }) {
-                            Text("右へ揃える")
+                            Text("Align Right")
                         }
                         .disabled(cropState.cropRects.count < 2)
                     }
                 } else {
                     // Single mode add button if missing
                     if cropState.cropRects.isEmpty {
-                        Button("枠を追加") {
+                        Button("Add Frame") {
                             cropState.addRect(colorIndex: 0)
                         }
+                    }
+                }
+            }
+
+            Divider()
+
+            if let selectedId = imageManager.selectedCropId,
+               let index = cropState.cropRects.firstIndex(where: { $0.id == selectedId }),
+               imageManager.currentImageSize.width > 0,
+               imageManager.currentImageSize.height > 0 {
+
+                Group {
+                    Text("Crop Geometry")
+                        .font(.headline)
+
+                    let rect = cropState.cropRects[index].rect
+                    let size = imageManager.currentImageSize
+
+                    // X
+                    HStack {
+                        Text("X:")
+                        TextField("X", value: Binding(
+                            get: { Int(rect.origin.x * size.width) },
+                            set: { newVal in
+                                var newRect = rect
+                                newRect.origin.x = CGFloat(newVal) / size.width
+                                cropState.cropRects[index].rect = newRect
+                            }
+                        ), formatter: NumberFormatter())
+                    }
+
+                    // Y
+                    HStack {
+                        Text("Y:")
+                        TextField("Y", value: Binding(
+                            get: { Int(rect.origin.y * size.height) },
+                            set: { newVal in
+                                var newRect = rect
+                                newRect.origin.y = CGFloat(newVal) / size.height
+                                cropState.cropRects[index].rect = newRect
+                            }
+                        ), formatter: NumberFormatter())
+                    }
+
+                    // W
+                    HStack {
+                        Text("W:")
+                        TextField("W", value: Binding(
+                            get: { Int(rect.width * size.width) },
+                            set: { newVal in
+                                var newRect = rect
+                                newRect.size.width = CGFloat(newVal) / size.width
+                                cropState.cropRects[index].rect = newRect
+                            }
+                        ), formatter: NumberFormatter())
+                    }
+
+                    // H
+                    HStack {
+                        Text("H:")
+                        TextField("H", value: Binding(
+                            get: { Int(rect.height * size.height) },
+                            set: { newVal in
+                                var newRect = rect
+                                newRect.size.height = CGFloat(newVal) / size.height
+                                cropState.cropRects[index].rect = newRect
+                            }
+                        ), formatter: NumberFormatter())
+                    }
+                }
+
+                Divider()
+            }
+
+            Group {
+                Text("Export Settings")
+                    .font(.headline)
+
+                Picker("Format", selection: $imageManager.exportOptions.format) {
+                    ForEach(ExportOptions.Format.allCases) { format in
+                        Text(format.rawValue).tag(format)
+                    }
+                }
+
+                Picker("Filename", selection: $imageManager.exportOptions.filenameMode) {
+                    ForEach(ExportOptions.FilenameMode.allCases) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
+                }
+
+                if imageManager.exportOptions.filenameMode == .custom ||
+                   imageManager.exportOptions.filenameMode == .originalAndCustom {
+                    TextField("Custom Text", text: $imageManager.exportOptions.customPrefix)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                }
+
+                HStack {
+                    Text("Output:")
+                    if let folder = imageManager.exportOptions.outputFolder {
+                        Text(folder.lastPathComponent)
+                            .truncationMode(.middle)
+                            .lineLimit(1)
+                            .help(folder.path)
+                    } else {
+                        Text("Default (Output/)")
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    Button("Choose...") {
+                        selectOutputFolder()
                     }
                 }
             }
@@ -82,7 +192,7 @@ struct CropInspectorView: View {
                         imageManager.applySettingsToAll(from: id)
                     }
                 }) {
-                    Text("現在の設定を全てに適用")
+                    Text("Apply Settings to All")
                         .frame(maxWidth: .infinity)
                 }
                 .disabled(selectedPageId == nil)
@@ -91,12 +201,12 @@ struct CropInspectorView: View {
             Divider()
 
             Group {
-                Text("実行")
+                Text("Actions")
                     .font(.headline)
                 Button(action: {
                     onExport()
                 }) {
-                    Label("切り出し実行", systemImage: "scissors")
+                    Label("Export", systemImage: "scissors")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
@@ -104,7 +214,7 @@ struct CropInspectorView: View {
 
                 if imageManager.isProcessing {
                     ProgressView(value: imageManager.processingProgress)
-                    Text("処理中... \(Int(imageManager.processingProgress * 100))%")
+                    Text("Processing... \(Int(imageManager.processingProgress * 100))%")
                         .font(.caption)
                 }
             }
@@ -113,5 +223,18 @@ struct CropInspectorView: View {
         }
         .padding()
         .frame(minWidth: 200, maxWidth: 300)
+    }
+
+    func selectOutputFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.canCreateDirectories = true
+        panel.message = "Select Output Folder"
+
+        if panel.runModal() == .OK {
+            imageManager.exportOptions.outputFolder = panel.url
+        }
     }
 }

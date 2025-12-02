@@ -3,17 +3,42 @@ import AppKit
 import CoreGraphics
 import ImageIO
 
+struct ExportOptions: Equatable {
+    enum Format: String, CaseIterable, Identifiable {
+        case jpg = "JPG"
+        case png = "PNG"
+        var id: String { rawValue }
+    }
+
+    enum FilenameMode: String, CaseIterable, Identifiable {
+        case sequence = "Sequence Only (001...)"
+        case original = "Original Filename + Sequence"
+        case custom = "Custom Text + Sequence"
+        case originalAndCustom = "Original + Custom + Sequence"
+
+        var id: String { rawValue }
+    }
+
+    var format: Format = .jpg
+    var filenameMode: FilenameMode = .sequence
+    var customPrefix: String = ""
+    var outputFolder: URL? = nil // If nil, use default "Output" subfolder
+}
+
 class BatchProcessor {
-    // Old method for backward compatibility if needed, but we can just remove it or ignore it.
-    // New method:
-    func processPages(pages: [ImagePage], sourceFolder: URL, progressHandler: @escaping (Double) -> Void) -> String {
-        let outputFolder = sourceFolder.appendingPathComponent("Output")
+    func processPages(pages: [ImagePage], sourceFolder: URL, options: ExportOptions, progressHandler: @escaping (Double) -> Void) -> String {
+        let outputFolder: URL
+        if let customFolder = options.outputFolder {
+            outputFolder = customFolder
+        } else {
+            outputFolder = sourceFolder.appendingPathComponent("Output")
+        }
 
         // Create Output directory
         do {
             try FileManager.default.createDirectory(at: outputFolder, withIntermediateDirectories: true, attributes: nil)
         } catch {
-            return "出力フォルダの作成に失敗しました: \(error.localizedDescription)"
+            return "Failed to create output folder: \(error.localizedDescription)"
         }
 
         var successCount = 0
@@ -44,11 +69,29 @@ class BatchProcessor {
                         let cropRect = CGRect(x: x, y: y, width: w, height: h)
 
                         if let croppedCGImage = cgImage.cropping(to: cropRect) {
-                            // Save
-                            let fileName = String(format: "%03d.jpg", globalCounter)
+                            // Construct filename
+                            let extensionStr = options.format == .jpg ? "jpg" : "png"
+                            let sequenceStr = String(format: "%03d", globalCounter)
+                            let fileName: String
+
+                            let originalName = fileURL.deletingPathExtension().lastPathComponent
+
+                            switch options.filenameMode {
+                            case .sequence:
+                                fileName = "\(sequenceStr).\(extensionStr)"
+                            case .original:
+                                fileName = "\(originalName)_\(sequenceStr).\(extensionStr)"
+                            case .custom:
+                                let prefix = options.customPrefix.isEmpty ? "Image" : options.customPrefix
+                                fileName = "\(prefix)_\(sequenceStr).\(extensionStr)"
+                            case .originalAndCustom:
+                                let prefix = options.customPrefix.isEmpty ? "" : "_\(options.customPrefix)"
+                                fileName = "\(originalName)\(prefix)_\(sequenceStr).\(extensionStr)"
+                            }
+
                             let destinationURL = outputFolder.appendingPathComponent(fileName)
 
-                            if saveImage(croppedCGImage, to: destinationURL) {
+                            if saveImage(croppedCGImage, to: destinationURL, format: options.format) {
                                 globalCounter += 1
                             } else {
                                 failCount += 1
@@ -66,19 +109,21 @@ class BatchProcessor {
             progressHandler(Double(index + 1) / Double(pages.count))
         }
 
-        return "完了: \(globalCounter - 1)枚の画像を保存しました (失敗: \(failCount))"
+        return "Completed: \(globalCounter - 1) images saved (Failed: \(failCount))"
     }
 
-    // Legacy support to match old signature if needed by tests, but we are replacing usage.
-    func processImages(files: [URL], sourceFolder: URL, rects: [CropRect], progressHandler: @escaping (Double) -> Void) -> String {
-        // This logic is now flawed because we want per-page settings.
-        // However, we can keep it for single-setting batch if ever needed, but for now we won't use it.
-        return "Deprecated"
-    }
-
-    private func saveImage(_ cgImage: CGImage, to url: URL) -> Bool {
+    private func saveImage(_ cgImage: CGImage, to url: URL, format: ExportOptions.Format) -> Bool {
         let bitmapRep = NSBitmapImageRep(cgImage: cgImage)
-        guard let data = bitmapRep.representation(using: .jpeg, properties: [.compressionFactor: 0.9]) else {
+        let fileType: NSBitmapImageRep.FileType = (format == .jpg) ? .jpeg : .png
+        let properties: [NSBitmapImageRep.PropertyKey: Any]
+
+        if format == .jpg {
+            properties = [.compressionFactor: 0.9]
+        } else {
+            properties = [:]
+        }
+
+        guard let data = bitmapRep.representation(using: fileType, properties: properties) else {
             return false
         }
 

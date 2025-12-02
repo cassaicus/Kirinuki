@@ -2,8 +2,8 @@ import Foundation
 import CoreGraphics
 
 enum CropMode: String, CaseIterable, Identifiable {
-    case single = "通常モード"
-    case split = "見開きモード"
+    case single = "Single"
+    case split = "Split"
 
     var id: String { self.rawValue }
 }

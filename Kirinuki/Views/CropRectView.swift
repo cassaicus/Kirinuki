@@ -4,6 +4,8 @@ import SwiftUI
 struct CropRectView: View {
     @Binding var normalizedRect: CGRect
     let color: Color
+    let isSelected: Bool
+    let onSelect: () -> Void
     let onDelete: () -> Void
 
     @State private var dragStartRect: CGRect? = nil
@@ -16,10 +18,13 @@ struct CropRectView: View {
             ZStack {
                 // Main Area (Move)
                 Rectangle()
-                    .strokeBorder(color, lineWidth: 2)
+                    .strokeBorder(color, lineWidth: isSelected ? 4 : 2)
                     .background(color.opacity(0.2))
                     .frame(width: viewRect.width, height: viewRect.height)
                     .position(x: viewRect.midX, y: viewRect.midY)
+                    .onTapGesture {
+                        onSelect()
+                    }
                     .gesture(
                         DragGesture()
                             .onChanged { value in

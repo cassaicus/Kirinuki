@@ -3,11 +3,16 @@ import SwiftUI
 struct ImageViewer: View {
     let image: NSImage?
     @Binding var cropState: PageCropState
+    @ObservedObject var imageManager: ImageManager
 
     var body: some View {
         GeometryReader { geometry in
             ZStack {
                 Color.gray.opacity(0.1) // Background
+                    .onTapGesture {
+                        // Deselect if background clicked
+                        imageManager.selectedCropId = nil
+                    }
 
                 if let image = image {
                     let imageRect = calculateImageRect(containerSize: geometry.size, imageSize: image.size)
@@ -18,6 +23,12 @@ struct ImageViewer: View {
                         .aspectRatio(contentMode: .fit)
                         .frame(width: geometry.size.width, height: geometry.size.height)
                         .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                        .onAppear {
+                            imageManager.currentImageSize = image.size
+                        }
+                        .onChange(of: image) { _, newImage in
+                            imageManager.currentImageSize = newImage?.size ?? .zero
+                        }
 
                     // Render Crop Rects relative to the image frame
                     ZStack {
@@ -25,8 +36,15 @@ struct ImageViewer: View {
                             CropRectView(
                                 normalizedRect: $cropRect.rect,
                                 color: cropRect.colorIndex == 0 ? .blue : .red,
+                                isSelected: imageManager.selectedCropId == cropRect.id,
+                                onSelect: {
+                                    imageManager.selectedCropId = cropRect.id
+                                },
                                 onDelete: {
                                     cropState.removeRect(id: cropRect.id)
+                                    if imageManager.selectedCropId == cropRect.id {
+                                        imageManager.selectedCropId = nil
+                                    }
                                 }
                             )
                         }

@@ -26,7 +26,12 @@ class ImageManager: ObservableObject {
 
     @Published var isProcessing: Bool = false
     @Published var processingProgress: Double = 0.0
-    @Published var statusMessage: String = "フォルダを選択してください"
+    @Published var statusMessage: String = "Please select a folder"
+    @Published var exportOptions = ExportOptions()
+
+    // Selection state for crop frames
+    @Published var selectedCropId: UUID?
+    @Published var currentImageSize: CGSize = .zero
 
     func selectFolder() {
         let panel = NSOpenPanel()
@@ -62,13 +67,13 @@ class ImageManager: ObservableObject {
 
             if let firstPage = pages.first {
                 self.selectedPageId = firstPage.id
-                self.statusMessage = "\(pages.count)枚の画像を読み込みました"
+                self.statusMessage = "\(pages.count) images loaded"
             } else {
                 self.selectedPageId = nil
-                self.statusMessage = "画像ファイルが見つかりませんでした"
+                self.statusMessage = "No image files found"
             }
         } catch {
-            self.statusMessage = "エラー: \(error.localizedDescription)"
+            self.statusMessage = "Error: \(error.localizedDescription)"
         }
     }
 
