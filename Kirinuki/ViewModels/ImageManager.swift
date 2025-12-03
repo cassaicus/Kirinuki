@@ -2,20 +2,34 @@ import Foundation
 import AppKit
 internal import Combine
 
+// 【解説】 ImagePage
+// 各画像ファイルを表すデータモデルです。
+// 画像のURLと、その画像に対するクロップ設定（cropState）を保持します。
+// Identifiable に準拠しており、SwiftUIのListやForEachで一意に識別可能です。
 struct ImagePage: Identifiable, Equatable {
     let id = UUID()
     let url: URL
     var cropState: PageCropState
 
     // Equatable conformance
+    // Stateの更新を検知しやすくするため、等価性を定義しています。
     static func == (lhs: ImagePage, rhs: ImagePage) -> Bool {
         return lhs.id == rhs.id && lhs.cropState == rhs.cropState
     }
 }
 
+// 【解説】 ImageManager
+// アプリケーション全体の状態を管理する View Model です。
+// ObservableObject プロトコルに準拠しており、@Published プロパティが変更されると
+// これを監視（Observe）しているViewに変更通知を送ります。
 class ImageManager: ObservableObject {
     @Published var sourceFolder: URL?
     @Published var pages: [ImagePage] = []
+
+    // 【解説: 選択状態の管理】
+    // 選択された画像のIDです。
+    // ContentView.swift では、このプロパティを直接バインドするのではなく、
+    // ローカル State を介して更新することで "Publishing changes" エラーを防いでいます。
     @Published var selectedPageId: UUID?
 
     // Cached preview for the *selected* image to avoid loading everything at once?
@@ -30,7 +44,11 @@ class ImageManager: ObservableObject {
     @Published var exportOptions = ExportOptions()
 
     // Selection state for crop frames
+    // 画像内の特定のクロップ枠が選択されているかどうかを管理します。
     @Published var selectedCropId: UUID?
+
+    // 現在表示中の画像のサイズです。
+    // ImageViewer から非同期に更新されます。
     @Published var currentImageSize: CGSize = .zero
 
     func selectFolder() {

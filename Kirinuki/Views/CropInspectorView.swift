@@ -12,15 +12,23 @@ struct CropInspectorView: View {
                 Text("Settings")
                     .font(.headline)
 
-                Picker("Mode", selection: $cropState.mode) {
+                // 【解説: Custom Binding の活用】
+                // Picker 選択時に直接 cropState.mode を更新するのではなく、カスタム Binding を介して制御しています。
+                // これにより、更新処理（cropState.updateMode）を非同期（DispatchQueue.main.async）で行うことができ、
+                // ビューの描画サイクル中の状態変更エラーを回避しています。
+                Picker("Mode", selection: Binding(
+                    get: { cropState.mode },
+                    set: { newMode in
+                        DispatchQueue.main.async {
+                            cropState.updateMode(newMode)
+                        }
+                    }
+                )) {
                     ForEach(CropMode.allCases) { mode in
                         Text(mode.rawValue).tag(mode)
                     }
                 }
                 .pickerStyle(SegmentedPickerStyle())
-                .onChange(of: cropState.mode) { oldValue, newValue in
-                    cropState.updateMode(newValue)
-                }
 
                 if cropState.mode == .split {
                     VStack(alignment: .leading, spacing: 8) {
@@ -91,6 +99,9 @@ struct CropInspectorView: View {
                     // X
                     HStack {
                         Text("X:")
+                        // 【解説】 TextField への入力も Custom Binding でラップ
+                        // get: 正規化された座標 (0.0-1.0) をピクセル単位に変換して表示
+                        // set: 入力されたピクセル値を再び正規化座標に変換してモデルに保存
                         TextField("X", value: Binding(
                             get: { Int(rect.origin.x * size.width) },
                             set: { newVal in

@@ -1,6 +1,10 @@
 import Foundation
 import CoreGraphics
 
+// 【解説】 CropMode
+// クロップ処理のモード定義です。
+// Single: 1枚の画像から1つの領域を切り抜く
+// Split: 1枚の画像（例：見開きページ）から2つの領域（左右）を切り抜く
 enum CropMode: String, CaseIterable, Identifiable {
     case single = "Single"
     case split = "Split"
@@ -8,18 +12,30 @@ enum CropMode: String, CaseIterable, Identifiable {
     var id: String { self.rawValue }
 }
 
+// 【解説】 CropRect
+// 個別のクロップ枠を表すデータモデルです。
+// rect: 画像に対する正規化座標 (0.0 - 1.0) で位置とサイズを保持します。
+// colorIndex: 枠の色や役割（1枚目、2枚目）を識別します。
 struct CropRect: Identifiable, Equatable {
     let id = UUID()
     var rect: CGRect // Normalized coordinates (0.0 - 1.0)
     var colorIndex: Int // 0 for primary (first), 1 for secondary (second)
 }
 
+// 【解説】 PageCropState
+// 1ページあたりのクロップ設定全体を管理する構造体です。
+// モードと、そのモードに含まれるクロップ枠のリストを持ちます。
+// Equatable に準拠することで、SwiftUI が変更を検知して効率的にビューを更新できるようにしています。
 struct PageCropState: Equatable {
     var mode: CropMode = .single
     var cropRects: [CropRect] = [
         CropRect(rect: CGRect(x: 0.1, y: 0.1, width: 0.8, height: 0.8), colorIndex: 0)
     ]
 
+    // モード変更時のロジックです。
+    // Single <-> Split 切り替え時に、適切なデフォルト枠を生成または削減します。
+    // mutating キーワードが付いているのは、構造体自身のプロパティを変更するためです。
+    // UI から呼び出される際（CropInspectorView）は、DispatchQueue.main.async 内で行われることが多いです。
     mutating func updateMode(_ newMode: CropMode) {
         mode = newMode
         // When switching modes, we try to preserve existing rects if valid, or reset.
@@ -85,6 +101,7 @@ struct PageCropState: Equatable {
         cropRects.removeAll { $0.id == id }
     }
 
+    // Splitモードにおいて、2つの枠を左右に整列させる便利機能です。
     mutating func alignCropRects(toRight: Bool) {
         guard mode == .split else { return }
 

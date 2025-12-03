@@ -1,6 +1,9 @@
 import SwiftUI
 
-// Rewriting ResizableRectView to be more robust with DragGesture
+// 【解説】 CropRectView
+// 個別のクロップ枠を表示・操作するためのViewです。
+// normalizedRect は 0.0-1.0 の正規化座標で管理されており、
+// 表示時に GeometryReader で取得した親サイズ（parentSize）を使ってピクセル座標に変換（denormalize）します。
 struct CropRectView: View {
     @Binding var normalizedRect: CGRect
     let color: Color
@@ -8,6 +11,7 @@ struct CropRectView: View {
     let onSelect: () -> Void
     let onDelete: () -> Void
 
+    // ドラッグ操作中の開始状態を保持します。
     @State private var dragStartRect: CGRect? = nil
 
     var body: some View {
@@ -17,6 +21,7 @@ struct CropRectView: View {
 
             ZStack {
                 // Main Area (Move)
+                // 枠自体をドラッグして移動させます。
                 Rectangle()
                     .strokeBorder(color, lineWidth: isSelected ? 4 : 2)
                     .background(color.opacity(0.2))
@@ -31,13 +36,14 @@ struct CropRectView: View {
                                 if dragStartRect == nil { dragStartRect = normalizedRect }
                                 guard let start = dragStartRect else { return }
 
+                                // 移動量を正規化座標に変換
                                 let dx = value.translation.width / parentSize.width
                                 let dy = value.translation.height / parentSize.height
 
                                 var newX = start.origin.x + dx
                                 var newY = start.origin.y + dy
 
-                                // Clamp to bounds (0...1) - width
+                                // 画面外にはみ出さないようにクランプ (0...1)
                                 newX = max(0, min(newX, 1.0 - start.width))
                                 newY = max(0, min(newY, 1.0 - start.height))
 
@@ -46,7 +52,9 @@ struct CropRectView: View {
                             .onEnded { _ in dragStartRect = nil }
                     )
 
-                // Handles
+                // Handles (Resize)
+                // 四隅にリサイズ用のハンドル（白い円）を配置します。
+
                 // Top-Left
                 HandleView()
                     .position(x: viewRect.minX, y: viewRect.minY)
@@ -82,6 +90,8 @@ struct CropRectView: View {
 
     enum Corner { case topLeft, topRight, bottomLeft, bottomRight }
 
+    // リサイズ用のジェスチャーロジック
+    // ドラッグ量に応じて正規化座標を更新します。
     func resizeGesture(corner: Corner, parentSize: CGSize) -> some Gesture {
         DragGesture()
             .onChanged { value in
@@ -93,6 +103,7 @@ struct CropRectView: View {
 
                 var newRect = start
 
+                // コーナーに応じて origin と size を同時に調整
                 switch corner {
                 case .topLeft:
                     newRect.origin.x += dx
@@ -112,13 +123,12 @@ struct CropRectView: View {
                     newRect.size.height += dy
                 }
 
-                // Min size check (e.g. 1% of screen)
+                // 最小サイズの制限 (画面の1%)
                 if newRect.width < 0.01 { newRect.size.width = 0.01 }
                 if newRect.height < 0.01 { newRect.size.height = 0.01 }
 
-                // Normalize rect might need to adjust origin if width becomes negative (flip)
-                // But for now let's just clamp width/height to be positive
-                if newRect.width < 0 { newRect.size.width = 0.01 } // prevent flip for simplicity
+                // 負のサイズにならないようにクランプ
+                if newRect.width < 0 { newRect.size.width = 0.01 }
                 if newRect.height < 0 { newRect.size.height = 0.01 }
 
                 normalizedRect = newRect
@@ -126,6 +136,7 @@ struct CropRectView: View {
             .onEnded { _ in dragStartRect = nil }
     }
 
+    // 正規化座標(0-1)をピクセル座標に変換するヘルパー関数
     func denormalize(_ rect: CGRect, parentSize: CGSize) -> CGRect {
         return CGRect(
             x: rect.origin.x * parentSize.width,
