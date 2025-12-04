@@ -1,4 +1,4 @@
-This is an image cropping app for MacOS.  
+This is an image cropping app for macOS.  
 It can crop multiple images.  
 It also has the ability to crop two areas from a single image.  
 It is suitable for taking a large number of screenshots.  
